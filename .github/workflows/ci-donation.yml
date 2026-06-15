@@ -68,8 +68,15 @@ jobs:
 
       - name: Update GitOps image tag
         if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ secrets.GITOPS_TOKEN }}
         run: |
+          git clone https://x-access-token:${GH_TOKEN}@github.com/AXMEDUSA/1-DCLT-GITOPS-FASE-5.git /tmp/gitops
+          cd /tmp/gitops
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           sed -i "s|image: ${{ env.ACR }}/${{ env.SERVICE }}:.*|image: ${{ env.ACR }}/${{ env.SERVICE }}:${{ github.sha }}|" \
-            ../1-DCLT-GITOPS-FASE-5/apps/${{ env.SERVICE }}/deployment.yaml || true
+            apps/${{ env.SERVICE }}/deployment.yaml
+          git add apps/${{ env.SERVICE }}/deployment.yaml
+          git commit -m "[CD] ${{ env.SERVICE }} → ${{ github.sha }}" || echo "nenhuma alteracao"
+          git push
