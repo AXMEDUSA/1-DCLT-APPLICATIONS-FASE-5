@@ -1,0 +1,73 @@
+name: CI — volunteer-service
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "volunteer-service/**"
+  pull_request:
+    paths:
+      - "volunteer-service/**"
+
+env:
+  SERVICE: volunteer-service
+  PORT: 8083
+  ACR: acrsolidarytechf5.azurecr.io
+
+jobs:
+  build-scan-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: ACR Login
+        run: az acr login --name acrsolidarytechf5
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t ${{ env.ACR }}/${{ env.SERVICE }}:${{ github.sha }} \
+            -t ${{ env.ACR }}/${{ env.SERVICE }}:latest \
+            ./${{ env.SERVICE }}
+
+      - name: Trivy — scan filesystem (SAST/SCA)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: ./${{ env.SERVICE }}
+          severity: CRITICAL,HIGH
+          exit-code: 1
+          ignore-unfixed: true
+
+      - name: Trivy — scan image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.ACR }}/${{ env.SERVICE }}:${{ github.sha }}
+          severity: CRITICAL,HIGH
+          exit-code: 1
+          ignore-unfixed: true
+
+      - name: Push image to ACR
+        if: github.ref == 'refs/heads/main'
+        run: |
+          docker push ${{ env.ACR }}/${{ env.SERVICE }}:${{ github.sha }}
+          docker push ${{ env.ACR }}/${{ env.SERVICE }}:latest
+
+      - name: Update GitOps image tag
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          sed -i "s|image: ${{ env.ACR }}/${{ env.SERVICE }}:.*|image: ${{ env.ACR }}/${{ env.SERVICE }}:${{ github.sha }}|" \
+            ../1-DCLT-GITOPS-FASE-5/apps/${{ env.SERVICE }}/deployment.yaml || true
