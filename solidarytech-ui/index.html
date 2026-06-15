@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SolidaryTech — Dashboard de Testes</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3250;
+      --accent: #6c63ff;
+      --accent2: #00d4aa;
+      --accent3: #ff6584;
+      --accent4: #ffd166;
+      --text: #e8eaf6;
+      --text2: #9ea3c0;
+      --green: #00e676;
+      --red: #ff5252;
+      --yellow: #ffd166;
+      --radius: 12px;
+      --shadow: 0 4px 24px rgba(0,0,0,0.4);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* HEADER */
+    header {
+      background: linear-gradient(135deg, #1a1d27 0%, #22263a 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      display: flex; align-items: center; gap: 20px;
+      height: 64px; position: sticky; top: 0; z-index: 100;
+    }
+    .logo { font-size: 22px; font-weight: 800; background: linear-gradient(90deg,#6c63ff,#00d4aa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .logo span { font-weight: 300; }
+    .badge { font-size: 11px; background: var(--accent); color: white; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
+    .status-bar { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+    .status-dot { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2); }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #444; }
+    .dot.ok { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .dot.err { background: var(--red); }
+    .dot.loading { background: var(--yellow); animation: pulse 1s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    /* LAYOUT */
+    .container { max-width: 1400px; margin: 0 auto; padding: 32px; }
+    .tabs { display: flex; gap: 4px; margin-bottom: 28px; background: var(--surface); padding: 4px; border-radius: var(--radius); width: fit-content; }
+    .tab { padding: 10px 24px; border-radius: 8px; border: none; background: transparent; color: var(--text2); cursor: pointer; font-size: 14px; font-weight: 500; transition: all .2s; }
+    .tab.active { background: var(--accent); color: white; }
+    .tab:hover:not(.active) { background: var(--surface2); color: var(--text); }
+    .tab-icon { margin-right: 6px; }
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* CARDS */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; box-shadow: var(--shadow); }
+    .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+    .card-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+    .card-title { font-size: 16px; font-weight: 700; }
+    .card-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+    /* GRID */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+    @media(max-width:900px) { .grid-2,.grid-3 { grid-template-columns: 1fr; } }
+
+    /* FORMS */
+    .form-group { margin-bottom: 14px; }
+    label { display: block; font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .5px; }
+    input, select, textarea {
+      width: 100%; padding: 10px 14px; background: var(--surface2);
+      border: 1px solid var(--border); border-radius: 8px; color: var(--text);
+      font-size: 14px; transition: border .2s; outline: none;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+    input::placeholder { color: var(--text2); opacity: .6; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    /* BUTTONS */
+    .btn { padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-weight: 600; transition: all .2s; display: inline-flex; align-items: center; gap: 8px; }
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-primary:hover { background: #5a52e0; transform: translateY(-1px); }
+    .btn-success { background: var(--accent2); color: #0f1117; }
+    .btn-success:hover { background: #00b894; }
+    .btn-danger { background: var(--accent3); color: white; }
+    .btn-warning { background: var(--accent4); color: #0f1117; }
+    .btn-ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    .btn-ghost:hover { border-color: var(--accent); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+    /* RESPONSE */
+    .response-box {
+      background: #0a0c14; border: 1px solid var(--border); border-radius: 8px;
+      padding: 16px; font-family: 'Courier New', monospace; font-size: 13px;
+      max-height: 280px; overflow-y: auto; white-space: pre-wrap; word-break: break-all;
+      transition: border .3s; margin-top: 16px;
+    }
+    .response-box.success { border-color: var(--green); }
+    .response-box.error { border-color: var(--red); }
+    .response-status { display: flex; align-items: center; gap: 8px; font-size: 12px; margin-bottom: 10px; }
+    .status-code { padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 12px; }
+    .status-2xx { background: rgba(0,230,118,.15); color: var(--green); }
+    .status-4xx { background: rgba(255,82,82,.15); color: var(--red); }
+    .status-5xx { background: rgba(255,82,82,.15); color: var(--red); }
+    .response-time { color: var(--text2); }
+
+    /* TABLES */
+    .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .data-table th { padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text2); border-bottom: 1px solid var(--border); background: var(--surface2); }
+    .data-table td { padding: 12px 14px; border-bottom: 1px solid rgba(46,50,80,.5); vertical-align: middle; }
+    .data-table tr:hover td { background: rgba(108,99,255,.05); }
+    .data-table tr:last-child td { border-bottom: none; }
+    .empty-state { text-align: center; padding: 40px; color: var(--text2); }
+    .empty-state .emoji { font-size: 36px; display: block; margin-bottom: 8px; }
+
+    /* BADGES */
+    .badge-status { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+    .badge-approved { background: rgba(0,230,118,.15); color: var(--green); }
+    .badge-pending { background: rgba(255,209,102,.15); color: var(--yellow); }
+
+    /* METRICS */
+    .metric-card { background: var(--surface2); border-radius: 10px; padding: 18px; text-align: center; }
+    .metric-value { font-size: 32px; font-weight: 800; }
+    .metric-label { font-size: 12px; color: var(--text2); margin-top: 4px; }
+    .metric-sub { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+    /* ENDPOINT DOCS */
+    .endpoint { display: flex; align-items: flex-start; gap: 12px; padding: 14px; background: var(--surface2); border-radius: 8px; margin-bottom: 8px; }
+    .method { padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 800; min-width: 48px; text-align: center; }
+    .method-get { background: rgba(0,212,170,.15); color: var(--accent2); }
+    .method-post { background: rgba(108,99,255,.15); color: var(--accent); }
+    .endpoint-path { font-family: monospace; font-size: 14px; font-weight: 700; }
+    .endpoint-desc { font-size: 12px; color: var(--text2); margin-top: 2px; }
+    .endpoint-body { font-family: monospace; font-size: 11px; color: var(--text2); margin-top: 6px; }
+
+    /* TOAST */
+    #toast { position: fixed; bottom: 32px; right: 32px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
+    .toast-msg { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 20px; font-size: 13px; box-shadow: var(--shadow); animation: slideIn .3s ease; display: flex; align-items: center; gap: 8px; }
+    .toast-msg.ok { border-color: var(--green); }
+    .toast-msg.err { border-color: var(--red); }
+    @keyframes slideIn { from{transform:translateX(120%);opacity:0} to{transform:translateX(0);opacity:1} }
+
+    /* MISC */
+    .section-title { font-size: 13px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px; }
+    .divider { height: 1px; background: var(--border); margin: 20px 0; }
+    .tip { background: rgba(108,99,255,.1); border: 1px solid rgba(108,99,255,.3); border-radius: 8px; padding: 12px 16px; font-size: 12px; color: var(--text2); margin-bottom: 16px; }
+    .tip strong { color: var(--accent); }
+    .chip { display: inline-block; padding: 2px 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; font-family: monospace; font-size: 11px; color: var(--accent2); }
+    .flex-end { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+    .loading-spin { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.3); border-top-color: white; border-radius: 50%; animation: spin .6s linear infinite; }
+    @keyframes spin { to{transform:rotate(360deg)} }
+    select option { background: var(--surface2); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Solidary<span>Tech</span></div>
+  <div class="badge">Fase 5 — DCLT</div>
+  <div class="status-bar" id="statusBar">
+    <div class="status-dot"><div class="dot loading" id="dot-ngo"></div>ngo-service</div>
+    <div class="status-dot"><div class="dot loading" id="dot-donation"></div>donation-service</div>
+    <div class="status-dot"><div class="dot loading" id="dot-volunteer"></div>volunteer-service</div>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('home')"><span class="tab-icon">🏠</span>Visão Geral</button>
+    <button class="tab" onclick="switchTab('ongs')"><span class="tab-icon">🏢</span>ONGs</button>
+    <button class="tab" onclick="switchTab('donations')"><span class="tab-icon">💰</span>Doações</button>
+    <button class="tab" onclick="switchTab('volunteers')"><span class="tab-icon">🤝</span>Voluntários</button>
+    <button class="tab" onclick="switchTab('flow')"><span class="tab-icon">🔄</span>Fluxo Completo</button>
+    <button class="tab" onclick="switchTab('docs')"><span class="tab-icon">📖</span>Documentação</button>
+  </div>
+
+  <!-- ======================== HOME ======================== -->
+  <div id="page-home" class="page active">
+    <div class="grid-3" style="margin-bottom:20px">
+      <div class="metric-card">
+        <div class="metric-value" style="color:var(--accent)" id="metric-ngos">—</div>
+        <div class="metric-label">ONGs cadastradas</div>
+        <div class="metric-sub">ngo-service / PostgreSQL</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value" style="color:var(--accent2)" id="metric-donations">—</div>
+        <div class="metric-label">Doações processadas</div>
+        <div class="metric-sub">donation-service / PostgreSQL</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value" style="color:var(--accent4)" id="metric-volunteers">—</div>
+        <div class="metric-label">Voluntários registrados</div>
+        <div class="metric-sub">volunteer-service / CosmosDB</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon" style="background:rgba(108,99,255,.15)">🏢</div>
+          <div><div class="card-title">ngo-service</div><div class="card-sub">Python / Flask · PostgreSQL · Porta 8081</div></div>
+        </div>
+        <p style="font-size:13px;color:var(--text2);line-height:1.6">Gerencia o cadastro e consulta de ONGs parceiras da plataforma. Cada ONG possui nome, e-mail único, causa e cidade.</p>
+        <div class="divider"></div>
+        <div class="endpoint"><div class="method method-get">GET</div><div><div class="endpoint-path">/health</div><div class="endpoint-desc">Verifica se o serviço está ativo</div></div></div>
+        <div class="endpoint"><div class="method method-post">POST</div><div><div class="endpoint-path">/ngos</div><div class="endpoint-desc">Cadastra nova ONG</div></div></div>
+        <div class="endpoint"><div class="method method-get">GET</div><div><div class="endpoint-path">/ngos</div><div class="endpoint-desc">Lista todas as ONGs</div></div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon" style="background:rgba(0,212,170,.15)">💰</div>
+          <div><div class="card-title">donation-service ⚡ Hot Path</div><div class="card-sub">Go 1.24 · PostgreSQL + Queue · Porta 8082</div></div>
+        </div>
+        <p style="font-size:13px;color:var(--text2);line-height:1.6">Caminho crítico da plataforma. Processa doações em tempo real, persiste no PostgreSQL e emite eventos na Azure Storage Queue. <strong style="color:var(--accent2)">SLO: 99,9% sucesso · P99 ≤ 500ms</strong></p>
+        <div class="divider"></div>
+        <div class="endpoint"><div class="method method-post">POST</div><div><div class="endpoint-path">/donations</div><div class="endpoint-desc">Processa nova doação → status APPROVED</div></div></div>
+        <div class="endpoint"><div class="method method-get">GET</div><div><div class="endpoint-path">/donations</div><div class="endpoint-desc">Histórico de todas as doações</div></div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon" style="background:rgba(255,209,102,.15)">🤝</div>
+          <div><div class="card-title">volunteer-service</div><div class="card-sub">Python / Flask · CosmosDB Table API · Porta 8083</div></div>
+        </div>
+        <p style="font-size:13px;color:var(--text2);line-height:1.6">Match entre voluntários e ONGs. Cada voluntário recebe um UUID único e é associado a uma ONG pelo ID. Armazenamento no Azure CosmosDB (Table API, serverless).</p>
+        <div class="divider"></div>
+        <div class="endpoint"><div class="method method-post">POST</div><div><div class="endpoint-path">/volunteers</div><div class="endpoint-desc">Registra novo voluntário</div></div></div>
+        <div class="endpoint"><div class="method method-get">GET</div><div><div class="endpoint-path">/volunteers/&lt;ngo_id&gt;</div><div class="endpoint-desc">Lista voluntários de uma ONG</div></div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon" style="background:rgba(255,101,132,.15)">⚙️</div>
+          <div><div class="card-title">Configuração dos Endpoints</div><div class="card-sub">Ajuste para o seu ambiente</div></div>
+        </div>
+        <div class="tip"><strong>ℹ️ Como usar:</strong> Se estiver rodando via <span class="chip">kubectl port-forward</span>, use as URLs padrão abaixo. Se mudou as portas, ajuste aqui.</div>
+        <div class="form-group"><label>ngo-service URL</label><input id="cfg-ngo" value="http://localhost:8081" /></div>
+        <div class="form-group"><label>donation-service URL</label><input id="cfg-donation" value="http://localhost:8082" /></div>
+        <div class="form-group"><label>volunteer-service URL</label><input id="cfg-volunteer" value="http://localhost:18083" /></div>
+        <div class="flex-end"><button class="btn btn-primary" onclick="checkHealth(); saveConfig()">✅ Salvar e testar conexão</button></div>
+      </div>
+    </div>
+
+    <!-- Últimas doações na home -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon" style="background:rgba(0,212,170,.15)">📊</div>
+        <div><div class="card-title">Doações Recentes</div><div class="card-sub">Últimas 5 transações</div></div>
+      </div>
+      <div id="home-donations-table"></div>
+    </div>
+  </div>
+
+  <!-- ======================== ONGs ======================== -->
+  <div id="page-ongs" class="page">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon" style="background:rgba(108,99,255,.15)">➕</div>
+          <div><div class="card-title">Cadastrar Nova ONG</div><div class="card-sub">POST /ngos</div></div>
+        </div>
+        <div class="tip"><strong>Campos obrigatórios:</strong> name, email (único), cause, city</div>
+        <div class="form-group"><label>Nome da ONG</label><input id="ngo-name" placeholder="Ex: Anjos de Patas" /></div>
+        <div class="form-row">
+          <div class="form-group"><label>E-mail</label><input id="ngo-email" type="email" placeholder="contato@ong.org" /></div>
+          <div class="form-group"><label>Cidade</label><input id="ngo-city" placeholder="Ex: São Paulo" /></div>
+        </div>
+        <div class="form-group">
+          <label>Causa</label>
+          <select id="ngo-cause">
+            <option value="Educação">Educação</option>
+            <option value="Saúde">Saúde</option>
+            <option value="Proteção Animal">Proteção Animal</option>
+            <option value="Meio Ambiente">Meio Ambiente</option>
+            <option value="Alimentação">Alimentação</option>
+            <option value="Habitação">Habitação</option>
+            <option value="Cultura">Cultura</option>
+          </select>
+        </div>
+        <div class="flex-end">
+          <button class="btn btn-ghost btn-sm" onclick="fillNgoDemo()">🎲 Preencher exemplo</button>
+          <button class="btn btn-primary" onclick="createNgo()" id="btn-create-ngo">➕ Cadastrar ONG</button>
+        </div>
+        <div id="ngo-response"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon" style="background:rgba(0,212,170,.15)">📋</div>
+          <div><div class="card-title">ONGs Cadastradas</div><div class="card-sub">GET /ngos</div></div>
+        </div>
+        <div class="flex-end" style="margin-bottom:12px">
+          <button class="btn btn-ghost btn-sm" onclick="loadNgos()">🔄 Atualizar</button>
+        </div>
+        <div id="ngos-table"><div class="empty-state"><span class="emoji">🏢</span>Carregando...</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== DOAÇÕES ======================== -->
+  <div id="page-donations" class="page">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon" style="background:rgba(0,212,170,.15)">💳</div>
+          <div><div class="card-title">Processar Doação</div><div class="card-sub">POST /donations — Hot Path ⚡</div></div>
+        </div>
+        <div class="tip"><strong>⚡ Hot Path:</strong> Este serviço tem SLO de <strong>99,9% de sucesso</strong> e <strong>P99 ≤ 500ms</strong>. Cada requisição aqui queima Error Budget se falhar.</div>
+        <div class="form-group">
+          <label>ONG destinatária</label>
+          <select id="don-ngo-id"><option value="">— Selecione a ONG —</option></select>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Valor (R$)</label><input id="don-amount" type="number" step="0.01" min="1" placeholder="100.00" /></div>
+          <div class="form-group"><label>Nome do doador</label><input id="don-donor" placeholder="Seu nome" /></div>
+        </div>
+        <div class="flex-end">
+          <button class="btn btn-ghost btn-sm" onclick="fillDonationDemo()">🎲 Exemplo</button>
+          <button class="btn btn-success" onclick="createDonation()" id="btn-create-donation">💰 Processar Doação</button>
+        </div>
+        <div id="donation-response"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon" style="background:rgba(108,99,255,.15)">📈</div>
+          <div><div class="card-title">Histórico de Doações</div><div class="card-sub">GET /donations</div></div>
+        </div>
+        <div class="flex-end" style="margin-bottom:12px">
+          <button class="btn btn-ghost btn-sm" onclick="loadDonations()">🔄 Atualizar</button>
+        </div>
+        <div id="donations-table"><div class="empty-state"><span class="emoji">💰</span>Carregando...</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== VOLUNTÁRIOS ======================== -->
+  <div id="page-volunteers" class="page">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon" style="background:rgba(255,209,102,.15)">🙋</div>
+          <div><div class="card-title">Registrar Voluntário</div><div class="card-sub">POST /volunteers</div></div>
+        </div>
+        <div class="tip"><strong>Armazenamento:</strong> Azure CosmosDB Table API (Serverless). O voluntário é vinculado à ONG pelo ID e recebe um UUID único.</div>
+        <div class="form-group">
+          <label>ONG de atuação</label>
+          <select id="vol-ngo-id"><option value="">— Selecione a ONG —</option></select>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Nome completo</label><input id="vol-name" placeholder="Nome do voluntário" /></div>
+          <div class="form-group"><label>E-mail</label><input id="vol-email" type="email" placeholder="voluntario@email.com" /></div>
+        </div>
+        <div class="flex-end">
+          <button class="btn btn-ghost btn-sm" onclick="fillVolunteerDemo()">🎲 Exemplo</button>
+          <button class="btn btn-warning" onclick="createVolunteer()" id="btn-create-volunteer">🤝 Registrar</button>
+        </div>
+        <div id="volunteer-response"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon" style="background:rgba(255,101,132,.15)">🔍</div>
+          <div><div class="card-title">Buscar Voluntários por ONG</div><div class="card-sub">GET /volunteers/&lt;ngo_id&gt;</div></div>
+        </div>
+        <div class="form-group">
+          <label>Selecionar ONG</label>
+          <select id="vol-search-ngo"><option value="">— Selecione —</option></select>
+        </div>
+        <div class="flex-end" style="margin-bottom:12px">
+          <button class="btn btn-danger btn-sm" onclick="searchVolunteers()">🔍 Buscar</button>
+        </div>
+        <div id="volunteers-table"><div class="empty-state"><span class="emoji">🤝</span>Selecione uma ONG para buscar</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== FLUXO COMPLETO ======================== -->
+  <div id="page-flow" class="page">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon" style="background:rgba(108,99,255,.15)">🔄</div>
+        <div>
+          <div class="card-title">Fluxo Completo — Teste End-to-End</div>
+          <div class="card-sub">Executa em sequência: Criar ONG → Processar Doação → Registrar Voluntário → Validar dados</div>
+        </div>
+      </div>
+      <div class="tip"><strong>📋 Sobre este teste:</strong> Simula o ciclo completo da plataforma SolidaryTech em um único clique. Cada etapa aguarda o resultado da anterior. Ideal para demonstração e validação.</div>
+
+      <div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="runFlow()" id="btn-flow">▶️ Executar Fluxo Completo</button>
+        <button class="btn btn-ghost" onclick="clearFlow()">🗑️ Limpar</button>
+      </div>
+
+      <!-- STEPS -->
+      <div id="flow-steps">
+        <div class="flow-step" id="step-1" data-state="idle">
+          <div class="step-header">
+            <div class="step-num">1</div>
+            <div class="step-info">
+              <div class="step-title">Criar ONG de teste</div>
+              <div class="step-desc">POST /ngos — ngo-service (PostgreSQL)</div>
+            </div>
+            <div class="step-status" id="step-1-status">⏳</div>
+          </div>
+          <div class="step-body" id="step-1-body"></div>
+        </div>
+
+        <div class="step-arrow">↓</div>
+
+        <div class="flow-step" id="step-2" data-state="idle">
+          <div class="step-header">
+            <div class="step-num">2</div>
+            <div class="step-info">
+              <div class="step-title">Processar doação para a ONG criada</div>
+              <div class="step-desc">POST /donations — donation-service ⚡ Hot Path</div>
+            </div>
+            <div class="step-status" id="step-2-status">⏳</div>
+          </div>
+          <div class="step-body" id="step-2-body"></div>
+        </div>
+
+        <div class="step-arrow">↓</div>
+
+        <div class="flow-step" id="step-3" data-state="idle">
+          <div class="step-header">
+            <div class="step-num">3</div>
+            <div class="step-info">
+              <div class="step-title">Registrar voluntário na ONG</div>
+              <div class="step-desc">POST /volunteers — volunteer-service (CosmosDB)</div>
+            </div>
+            <div class="step-status" id="step-3-status">⏳</div>
+          </div>
+          <div class="step-body" id="step-3-body"></div>
+        </div>
+
+        <div class="step-arrow">↓</div>
+
+        <div class="flow-step" id="step-4" data-state="idle">
+          <div class="step-header">
+            <div class="step-num">4</div>
+            <div class="step-info">
+              <div class="step-title">Validar — Listar voluntários da ONG</div>
+              <div class="step-desc">GET /volunteers/&lt;id&gt; — confirma persistência</div>
+            </div>
+            <div class="step-status" id="step-4-status">⏳</div>
+          </div>
+          <div class="step-body" id="step-4-body"></div>
+        </div>
+
+        <div class="step-arrow">↓</div>
+
+        <div class="flow-step" id="step-5" data-state="idle">
+          <div class="step-header">
+            <div class="step-num">5</div>
+            <div class="step-info">
+              <div class="step-title">Validar — Histórico de doações</div>
+              <div class="step-desc">GET /donations — confirma que a doação foi registrada</div>
+            </div>
+            <div class="step-status" id="step-5-status">⏳</div>
+          </div>
+          <div class="step-body" id="step-5-body"></div>
+        </div>
+      </div>
+
+      <div id="flow-summary" style="display:none" class="card" style="margin-top:20px;background:var(--surface2)"></div>
+    </div>
+  </div>
+
+  <!-- ======================== DOCS ======================== -->
+  <div id="page-docs" class="page">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon" style="background:rgba(108,99,255,.15)">🏢</div>
+          <div><div class="card-title">ngo-service</div><div class="card-sub">Python 3 / Flask · PostgreSQL</div></div>
+        </div>
+        <div class="section-title">Endpoints</div>
+        <div class="endpoint"><div class="method method-get">GET</div><div><div class="endpoint-path">/health</div><div class="endpoint-desc">Health check</div><div class="endpoint-body">→ {"status":"ok","service":"ngo-service"}</div></div></div>
+        <div class="endpoint"><div class="method method-post">POST</div><div><div class="endpoint-path">/ngos</div><div class="endpoint-desc">Cadastra nova ONG</div><div class="endpoint-body">Body: {"name":"...","email":"...","cause":"...","city":"..."}</div></div></div>
+        <div class="endpoint"><div class="method method-get">GET</div><div><div class="endpoint-path">/ngos</div><div class="endpoint-desc">Lista ONGs ordenadas por ID desc</div></div></div>
+        <div class="divider"></div>
+        <div class="section-title">Recursos no cluster</div>
+        <div style="font-size:12px;color:var(--text2);line-height:2">
+          <div>🔹 <strong>Réplicas:</strong> 1 (HPA: max 5)</div>
+          <div>🔹 <strong>CPU:</strong> request 100m / limit 250m</div>
+          <div>🔹 <strong>Memória:</strong> request 128Mi / limit 256Mi</div>
+          <div>🔹 <strong>Banco:</strong> PostgreSQL Flexible Server (centralus)</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon" style="background:rgba(0,212,170,.15)">⚡</div>
+          <div><div class="card-title">donation-service</div><div class="card-sub">Go 1.24 · PostgreSQL + Azure Storage Queue</div></div>
+        </div>
+        <div class="section-title">Endpoints</div>
+        <div class="endpoint"><div class="method method-get">GET</div><div><div class="endpoint-path">/health</div><div class="endpoint-desc">Health check</div></div></div>
+        <div class="endpoint"><div class="method method-post">POST</div><div><div class="endpoint-path">/donations</div><div class="endpoint-desc">Processa doação → APPROVED + evento na fila</div><div class="endpoint-body">Body: {"ngo_id":1,"amount":100.00,"donor_name":"..."}</div></div></div>
+        <div class="endpoint"><div class="method method-get">GET</div><div><div class="endpoint-path">/donations</div><div class="endpoint-desc">Histórico completo de doações</div></div></div>
+        <div class="divider"></div>
+        <div class="section-title">SLOs</div>
+        <div style="font-size:12px;color:var(--text2);line-height:2">
+          <div>🎯 <strong>Taxa de Sucesso:</strong> ≥ 99,9% (Error Budget: 43min/mês)</div>
+          <div>🎯 <strong>Latência P99:</strong> ≤ 500ms</div>
+          <div>🔹 <strong>HPA:</strong> min 2 / max 10 réplicas / CPU 70%</div>
+          <div>🔹 <strong>CPU:</strong> request 250m / limit 500m</div>
+          <div>🔹 <strong>Memória:</strong> request 256Mi / limit 512Mi</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon" style="background:rgba(255,209,102,.15)">🤝</div>
+          <div><div class="card-title">volunteer-service</div><div class="card-sub">Python 3 / Flask · CosmosDB Table API (Serverless)</div></div>
+        </div>
+        <div class="section-title">Endpoints</div>
+        <div class="endpoint"><div class="method method-get">GET</div><div><div class="endpoint-path">/health</div><div class="endpoint-desc">Health check</div></div></div>
+        <div class="endpoint"><div class="method method-post">POST</div><div><div class="endpoint-path">/volunteers</div><div class="endpoint-desc">Registra voluntário (UUID gerado automaticamente)</div><div class="endpoint-body">Body: {"name":"...","email":"...","ngo_id":1}</div></div></div>
+        <div class="endpoint"><div class="method method-get">GET</div><div><div class="endpoint-path">/volunteers/&lt;ngo_id&gt;</div><div class="endpoint-desc">Lista voluntários de uma ONG específica</div></div></div>
+        <div class="divider"></div>
+        <div class="section-title">Recursos no cluster</div>
+        <div style="font-size:12px;color:var(--text2);line-height:2">
+          <div>🔹 <strong>Banco:</strong> Azure CosmosDB Table API (Serverless)</div>
+          <div>🔹 <strong>SDK:</strong> azure-data-tables (migrado de boto3/DynamoDB)</div>
+          <div>🔹 <strong>CPU:</strong> request 100m / limit 250m</div>
+          <div>🔹 <strong>Memória:</strong> request 128Mi / limit 256Mi</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon" style="background:rgba(255,101,132,.15)">🚀</div>
+          <div><div class="card-title">Como rodar localmente</div><div class="card-sub">kubectl port-forward</div></div>
+        </div>
+        <div class="section-title">Comandos port-forward</div>
+        <div style="background:var(--surface2);border-radius:8px;padding:14px;font-family:monospace;font-size:12px;line-height:2.2;color:var(--accent2)">
+          <div><span style="color:var(--text2)"># Terminal 1 — ngo-service</span></div>
+          <div>kubectl port-forward svc/ngo-service -n solidarytech 8081:80</div>
+          <div style="margin-top:8px"><span style="color:var(--text2)"># Terminal 2 — donation-service</span></div>
+          <div>kubectl port-forward svc/donation-service -n solidarytech 8082:80</div>
+          <div style="margin-top:8px"><span style="color:var(--text2)"># Terminal 3 — volunteer-service</span></div>
+          <div>kubectl port-forward svc/volunteer-service -n solidarytech 18083:80</div>
+        </div>
+        <div class="divider"></div>
+        <div class="section-title">Arquitetura de dados</div>
+        <div style="font-size:12px;color:var(--text2);line-height:2">
+          <div>🗄️ <strong>ngo-service</strong> → PostgreSQL <span class="chip">pg-ngo-solidarytech-v2</span></div>
+          <div>🗄️ <strong>donation-service</strong> → PostgreSQL <span class="chip">pg-donation-solidarytech-v2</span></div>
+          <div>📨 <strong>donation-service</strong> → Azure Storage Queue <span class="chip">fila-solidarytech</span></div>
+          <div>🌐 <strong>volunteer-service</strong> → CosmosDB <span class="chip">cosmos-solidarytech-f5</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<style>
+  .flow-step { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:0; transition: border .3s; }
+  .flow-step[data-state="running"] { border-color: var(--accent); }
+  .flow-step[data-state="ok"] { border-color: var(--green); }
+  .flow-step[data-state="error"] { border-color: var(--red); }
+  .step-header { display:flex; align-items:center; gap:14px; }
+  .step-num { width:32px; height:32px; border-radius:50%; background:var(--border); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; flex-shrink:0; }
+  .flow-step[data-state="ok"] .step-num { background:var(--green); color:#0f1117; }
+  .flow-step[data-state="error"] .step-num { background:var(--red); color:white; }
+  .flow-step[data-state="running"] .step-num { background:var(--accent); color:white; }
+  .step-title { font-size:14px; font-weight:700; }
+  .step-desc { font-size:12px; color:var(--text2); margin-top:2px; }
+  .step-status { margin-left:auto; font-size:18px; }
+  .step-body { margin-top:12px; display:none; font-family:monospace; font-size:12px; background:#0a0c14; border-radius:6px; padding:10px; max-height:120px; overflow-y:auto; white-space:pre-wrap; }
+  .step-body.visible { display:block; }
+  .step-arrow { text-align:center; font-size:20px; color:var(--border); padding:6px 0; }
+</style>
+
+<script>
+  // CONFIG
+  let cfg = {
+    ngo: 'http://localhost:8081',
+    donation: 'http://localhost:8082',
+    volunteer: 'http://localhost:18083'
+  };
+
+  function getConfig() {
+    cfg.ngo = document.getElementById('cfg-ngo').value.replace(/\/$/, '');
+    cfg.donation = document.getElementById('cfg-donation').value.replace(/\/$/, '');
+    cfg.volunteer = document.getElementById('cfg-volunteer').value.replace(/\/$/, '');
+  }
+  function saveConfig() { getConfig(); }
+
+  // TABS
+  function switchTab(tab) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('page-' + tab).classList.add('active');
+    event.currentTarget.classList.add('active');
+    if (tab === 'ongs') loadNgos();
+    if (tab === 'donations') { loadDonations(); populateNgoSelect('don-ngo-id'); }
+    if (tab === 'volunteers') { populateNgoSelect('vol-ngo-id'); populateNgoSelect('vol-search-ngo'); }
+    if (tab === 'home') loadHomeMetrics();
+  }
+
+  // API HELPER
+  async function api(method, url, body) {
+    const t0 = Date.now();
+    try {
+      const opts = { method, headers: { 'Content-Type': 'application/json' } };
+      if (body) opts.body = JSON.stringify(body);
+      const res = await fetch(url, opts);
+      const data = await res.json();
+      return { ok: res.ok, status: res.status, data, ms: Date.now() - t0 };
+    } catch (e) {
+      return { ok: false, status: 0, data: { error: e.message }, ms: Date.now() - t0 };
+    }
+  }
+
+  function renderResponse(containerId, result) {
+    const cls = result.ok ? 'success' : 'error';
+    const codeCls = result.status >= 500 ? 'status-5xx' : result.status >= 400 ? 'status-4xx' : 'status-2xx';
+    const label = result.status === 0 ? 'ERRO DE CONEXÃO' : result.status;
+    document.getElementById(containerId).innerHTML = `
+      <div class="response-box ${cls}">
+        <div class="response-status">
+          <span class="status-code ${codeCls}">${label}</span>
+          <span class="response-time">⏱ ${result.ms}ms</span>
+        </div>${JSON.stringify(result.data, null, 2)}</div>`;
+  }
+
+  // TOAST
+  function toast(msg, type = 'ok') {
+    const el = document.createElement('div');
+    el.className = `toast-msg ${type}`;
+    el.innerHTML = `${type === 'ok' ? '✅' : '❌'} ${msg}`;
+    document.getElementById('toast').appendChild(el);
+    setTimeout(() => el.remove(), 3500);
+  }
+
+  // HEALTH CHECK
+  async function checkHealth() {
+    getConfig();
+    const services = [
+      { id: 'ngo', url: cfg.ngo + '/health' },
+      { id: 'donation', url: cfg.donation + '/health' },
+      { id: 'volunteer', url: cfg.volunteer + '/health' }
+    ];
+    for (const s of services) {
+      const dot = document.getElementById('dot-' + s.id);
+      dot.className = 'dot loading';
+      const r = await api('GET', s.url);
+      dot.className = r.ok ? 'dot ok' : 'dot err';
+    }
+  }
+
+  // LOAD HOME METRICS
+  async function loadHomeMetrics() {
+    getConfig();
+    // NGOs
+    api('GET', cfg.ngo + '/ngos').then(r => {
+      document.getElementById('metric-ngos').textContent = r.ok ? r.data.length : '—';
+    });
+    // Donations
+    api('GET', cfg.donation + '/donations').then(r => {
+      if (r.ok) {
+        document.getElementById('metric-donations').textContent = r.data.length;
+        renderHomeDonations(r.data.slice(0, 5));
+      }
+    });
+    // Volunteers count (from all NGOs)
+    api('GET', cfg.ngo + '/ngos').then(async r => {
+      if (!r.ok) return;
+      let total = 0;
+      for (const ngo of r.data) {
+        const vr = await api('GET', cfg.volunteer + '/volunteers/' + ngo.id);
+        if (vr.ok) total += vr.data.length;
+      }
+      document.getElementById('metric-volunteers').textContent = total;
+    });
+  }
+
+  function renderHomeDonations(donations) {
+    if (!donations.length) { document.getElementById('home-donations-table').innerHTML = '<div class="empty-state"><span class="emoji">💰</span>Nenhuma doação ainda</div>'; return; }
+    document.getElementById('home-donations-table').innerHTML = `
+      <table class="data-table">
+        <thead><tr><th>ID</th><th>Doador</th><th>ONG</th><th>Valor</th><th>Status</th><th>Data</th></tr></thead>
+        <tbody>${donations.map(d => `
+          <tr>
+            <td>#${d.id}</td>
+            <td>${d.donor_name}</td>
+            <td>ONG #${d.ngo_id}</td>
+            <td><strong style="color:var(--accent2)">R$ ${Number(d.amount).toFixed(2)}</strong></td>
+            <td><span class="badge-status badge-approved">${d.status}</span></td>
+            <td style="color:var(--text2);font-size:12px">${new Date(d.created_at).toLocaleString('pt-BR')}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  // POPULATE NGO SELECT
+  async function populateNgoSelect(selectId) {
+    getConfig();
+    const r = await api('GET', cfg.ngo + '/ngos');
+    const sel = document.getElementById(selectId);
+    if (!r.ok) return;
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">— Selecione a ONG —</option>' +
+      r.data.map(n => `<option value="${n.id}">${n.name} (${n.cause}) — ID ${n.id}</option>`).join('');
+    if (cur) sel.value = cur;
+  }
+
+  // ---- ONGs ----
+  async function createNgo() {
+    getConfig();
+    const btn = document.getElementById('btn-create-ngo');
+    btn.disabled = true; btn.innerHTML = '<div class="loading-spin"></div> Cadastrando...';
+    const body = {
+      name: document.getElementById('ngo-name').value,
+      email: document.getElementById('ngo-email').value,
+      cause: document.getElementById('ngo-cause').value,
+      city: document.getElementById('ngo-city').value
+    };
+    if (!body.name || !body.email || !body.city) { toast('Preencha todos os campos', 'err'); btn.disabled=false; btn.innerHTML='➕ Cadastrar ONG'; return; }
+    const r = await api('POST', cfg.ngo + '/ngos', body);
+    renderResponse('ngo-response', r);
+    r.ok ? toast(`ONG "${body.name}" cadastrada! ID: ${r.data.id}`) : toast(r.data.error || 'Erro ao cadastrar', 'err');
+    btn.disabled=false; btn.innerHTML='➕ Cadastrar ONG';
+    loadNgos();
+  }
+
+  async function loadNgos() {
+    getConfig();
+    document.getElementById('ngos-table').innerHTML = '<div class="empty-state"><span class="emoji">⏳</span>Carregando...</div>';
+    const r = await api('GET', cfg.ngo + '/ngos');
+    if (!r.ok) { document.getElementById('ngos-table').innerHTML = `<div class="empty-state"><span class="emoji">❌</span>${r.data.error || 'Erro de conexão'}</div>`; return; }
+    if (!r.data.length) { document.getElementById('ngos-table').innerHTML = '<div class="empty-state"><span class="emoji">🏢</span>Nenhuma ONG cadastrada</div>'; return; }
+    document.getElementById('ngos-table').innerHTML = `
+      <table class="data-table">
+        <thead><tr><th>ID</th><th>Nome</th><th>Causa</th><th>Cidade</th><th>E-mail</th></tr></thead>
+        <tbody>${r.data.map(n => `
+          <tr>
+            <td><span class="chip">#${n.id}</span></td>
+            <td><strong>${n.name}</strong></td>
+            <td>${n.cause}</td>
+            <td>${n.city}</td>
+            <td style="color:var(--text2);font-size:12px">${n.email}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  function fillNgoDemo() {
+    const demos = [
+      { name:'Patas do Brasil', email:`patas${Date.now()}@ong.org`, cause:'Proteção Animal', city:'Belo Horizonte' },
+      { name:'Educa Favela', email:`educa${Date.now()}@ong.org`, cause:'Educação', city:'Rio de Janeiro' },
+      { name:'Verde Vivo', email:`verde${Date.now()}@ong.org`, cause:'Meio Ambiente', city:'Curitiba' },
+      { name:'Saúde Todo Dia', email:`saude${Date.now()}@ong.org`, cause:'Saúde', city:'Fortaleza' },
+    ];
+    const d = demos[Math.floor(Math.random() * demos.length)];
+    document.getElementById('ngo-name').value = d.name;
+    document.getElementById('ngo-email').value = d.email;
+    document.getElementById('ngo-cause').value = d.cause;
+    document.getElementById('ngo-city').value = d.city;
+  }
+
+  // ---- DOAÇÕES ----
+  async function createDonation() {
+    getConfig();
+    const btn = document.getElementById('btn-create-donation');
+    btn.disabled=true; btn.innerHTML='<div class="loading-spin"></div> Processando...';
+    const ngoId = document.getElementById('don-ngo-id').value;
+    const amount = parseFloat(document.getElementById('don-amount').value);
+    const donor = document.getElementById('don-donor').value;
+    if (!ngoId || !amount || !donor) { toast('Preencha todos os campos', 'err'); btn.disabled=false; btn.innerHTML='💰 Processar Doação'; return; }
+    const r = await api('POST', cfg.donation + '/donations', { ngo_id: parseInt(ngoId), amount, donor_name: donor });
+    renderResponse('donation-response', r);
+    r.ok ? toast(`Doação R$ ${amount.toFixed(2)} processada! Status: ${r.data.status}`) : toast(r.data.error || 'Erro', 'err');
+    btn.disabled=false; btn.innerHTML='💰 Processar Doação';
+    loadDonations();
+  }
+
+  async function loadDonations() {
+    getConfig();
+    document.getElementById('donations-table').innerHTML = '<div class="empty-state"><span class="emoji">⏳</span>Carregando...</div>';
+    const r = await api('GET', cfg.donation + '/donations');
+    if (!r.ok) { document.getElementById('donations-table').innerHTML = `<div class="empty-state"><span class="emoji">❌</span>${r.data.error || 'Erro de conexão'}</div>`; return; }
+    if (!r.data.length) { document.getElementById('donations-table').innerHTML = '<div class="empty-state"><span class="emoji">💰</span>Nenhuma doação ainda</div>'; return; }
+    document.getElementById('donations-table').innerHTML = `
+      <table class="data-table">
+        <thead><tr><th>ID</th><th>Doador</th><th>ONG</th><th>Valor</th><th>Status</th><th>Data</th></tr></thead>
+        <tbody>${r.data.map(d => `
+          <tr>
+            <td><span class="chip">#${d.id}</span></td>
+            <td><strong>${d.donor_name}</strong></td>
+            <td><span class="chip">ONG #${d.ngo_id}</span></td>
+            <td><strong style="color:var(--accent2)">R$ ${Number(d.amount).toFixed(2)}</strong></td>
+            <td><span class="badge-status badge-approved">${d.status}</span></td>
+            <td style="color:var(--text2);font-size:12px">${new Date(d.created_at).toLocaleString('pt-BR')}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  function fillDonationDemo() {
+    const amounts = [50, 100, 250, 500, 1000];
+    const donors = ['Felipe Matta', 'Ana Lima', 'Carlos Dev', 'Equipe DCLT', 'Maria Tech'];
+    document.getElementById('don-amount').value = amounts[Math.floor(Math.random()*amounts.length)];
+    document.getElementById('don-donor').value = donors[Math.floor(Math.random()*donors.length)];
+    populateNgoSelect('don-ngo-id');
+  }
+
+  // ---- VOLUNTÁRIOS ----
+  async function createVolunteer() {
+    getConfig();
+    const btn = document.getElementById('btn-create-volunteer');
+    btn.disabled=true; btn.innerHTML='<div class="loading-spin"></div> Registrando...';
+    const ngoId = document.getElementById('vol-ngo-id').value;
+    const name = document.getElementById('vol-name').value;
+    const email = document.getElementById('vol-email').value;
+    if (!ngoId || !name || !email) { toast('Preencha todos os campos', 'err'); btn.disabled=false; btn.innerHTML='🤝 Registrar'; return; }
+    const r = await api('POST', cfg.volunteer + '/volunteers', { name, email, ngo_id: parseInt(ngoId) });
+    renderResponse('volunteer-response', r);
+    r.ok ? toast(`Voluntário "${name}" registrado!`) : toast(r.data.error || 'Erro', 'err');
+    btn.disabled=false; btn.innerHTML='🤝 Registrar';
+  }
+
+  async function searchVolunteers() {
+    getConfig();
+    const ngoId = document.getElementById('vol-search-ngo').value;
+    if (!ngoId) { toast('Selecione uma ONG', 'err'); return; }
+    document.getElementById('volunteers-table').innerHTML = '<div class="empty-state"><span class="emoji">⏳</span>Buscando...</div>';
+    const r = await api('GET', cfg.volunteer + '/volunteers/' + ngoId);
+    if (!r.ok) { document.getElementById('volunteers-table').innerHTML = `<div class="empty-state"><span class="emoji">❌</span>${r.data.error || 'Erro'}</div>`; return; }
+    if (!r.data.length) { document.getElementById('volunteers-table').innerHTML = '<div class="empty-state"><span class="emoji">🤝</span>Nenhum voluntário nesta ONG</div>'; return; }
+    document.getElementById('volunteers-table').innerHTML = `
+      <table class="data-table">
+        <thead><tr><th>Nome</th><th>E-mail</th><th>UUID</th><th>Registrado em</th></tr></thead>
+        <tbody>${r.data.map(v => `
+          <tr>
+            <td><strong>${v.name}</strong></td>
+            <td style="color:var(--text2)">${v.email}</td>
+            <td><span class="chip" style="font-size:10px">${v.volunteer_id}</span></td>
+            <td style="color:var(--text2);font-size:12px">${new Date(parseInt(v.registered_at)*1000).toLocaleString('pt-BR')}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  function fillVolunteerDemo() {
+    const names = ['Ana Silva', 'Bruno Costa', 'Carla Mendes', 'Diego Ramos', 'Elisa Nunes'];
+    const n = names[Math.floor(Math.random()*names.length)];
+    document.getElementById('vol-name').value = n;
+    document.getElementById('vol-email').value = n.toLowerCase().replace(' ','.')+Date.now()+'@email.com';
+    populateNgoSelect('vol-ngo-id');
+  }
+
+  // ---- FLUXO COMPLETO ----
+  function setStep(n, state, body) {
+    const step = document.getElementById('step-' + n);
+    const status = document.getElementById('step-' + n + '-status');
+    const bodyEl = document.getElementById('step-' + n + '-body');
+    step.dataset.state = state;
+    status.textContent = state === 'running' ? '⏳' : state === 'ok' ? '✅' : state === 'error' ? '❌' : '⏳';
+    if (body !== undefined) {
+      bodyEl.textContent = JSON.stringify(body, null, 2);
+      bodyEl.classList.add('visible');
+    }
+  }
+
+  function clearFlow() {
+    for (let i = 1; i <= 5; i++) {
+      const step = document.getElementById('step-' + i);
+      step.dataset.state = 'idle';
+      document.getElementById('step-' + i + '-status').textContent = '⏳';
+      document.getElementById('step-' + i + '-body').textContent = '';
+      document.getElementById('step-' + i + '-body').classList.remove('visible');
+    }
+    document.getElementById('flow-summary').style.display = 'none';
+  }
+
+  async function runFlow() {
+    getConfig();
+    const btn = document.getElementById('btn-flow');
+    btn.disabled = true; btn.innerHTML = '<div class="loading-spin"></div> Executando...';
+    clearFlow();
+    const t0 = Date.now();
+    const ts = Date.now();
+    let errors = 0;
+
+    // STEP 1 — criar ONG
+    setStep(1, 'running');
+    const ngoBody = { name: `ONG Teste ${ts}`, email: `teste${ts}@solidary.org`, cause: 'Educação', city: 'São Paulo' };
+    const r1 = await api('POST', cfg.ngo + '/ngos', ngoBody);
+    setStep(1, r1.ok ? 'ok' : 'error', r1.data);
+    if (!r1.ok) { errors++; toast('Passo 1 falhou: ' + (r1.data.error||'ngo-service'), 'err'); btn.disabled=false; btn.innerHTML='▶️ Executar Fluxo Completo'; return; }
+    const ngoId = r1.data.id;
+
+    // STEP 2 — doação
+    setStep(2, 'running');
+    const r2 = await api('POST', cfg.donation + '/donations', { ngo_id: ngoId, amount: 350.00, donor_name: 'Equipe DCLT' });
+    setStep(2, r2.ok ? 'ok' : 'error', r2.data);
+    if (!r2.ok) errors++;
+
+    // STEP 3 — voluntário
+    setStep(3, 'running');
+    const r3 = await api('POST', cfg.volunteer + '/volunteers', { name: 'Ana Voluntária', email: `ana${ts}@vol.com`, ngo_id: ngoId });
+    setStep(3, r3.ok ? 'ok' : 'error', r3.data);
+    if (!r3.ok) errors++;
+
+    // STEP 4 — validar voluntários
+    setStep(4, 'running');
+    const r4 = await api('GET', cfg.volunteer + '/volunteers/' + ngoId);
+    setStep(4, r4.ok ? 'ok' : 'error', r4.data);
+    if (!r4.ok) errors++;
+
+    // STEP 5 — validar doações
+    setStep(5, 'running');
+    const r5 = await api('GET', cfg.donation + '/donations');
+    setStep(5, r5.ok ? 'ok' : 'error', r5.data ? r5.data.slice(0,3) : r5.data);
+    if (!r5.ok) errors++;
+
+    // SUMMARY
+    const elapsed = Date.now() - t0;
+    const allOk = errors === 0;
+    const summary = document.getElementById('flow-summary');
+    summary.style.display = 'block';
+    summary.innerHTML = `
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <div style="font-size:48px">${allOk ? '🎉' : '⚠️'}</div>
+        <div>
+          <div style="font-size:18px;font-weight:800;color:${allOk ? 'var(--green)' : 'var(--yellow)'}">${allOk ? 'Fluxo completo — Todos os serviços OK!' : `Fluxo com ${errors} erro(s)`}</div>
+          <div style="font-size:13px;color:var(--text2);margin-top:4px">Tempo total: ${elapsed}ms · ONG criada: #${ngoId} · Doação: ${r2.ok ? 'APPROVED' : 'FALHOU'} · Voluntário: ${r3.ok ? 'registrado' : 'FALHOU'}</div>
+        </div>
+      </div>`;
+    allOk ? toast(`Fluxo completo em ${elapsed}ms! 🎉`) : toast(`${errors} passo(s) falharam`, 'err');
+    btn.disabled=false; btn.innerHTML='▶️ Executar Fluxo Completo';
+    loadHomeMetrics();
+  }
+
+  // INIT
+  window.addEventListener('load', () => {
+    checkHealth();
+    loadHomeMetrics();
+    renderHomeDonations([]);
+  });
+</script>
+</body>
+</html>
