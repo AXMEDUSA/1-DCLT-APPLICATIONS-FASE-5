@@ -15,6 +15,18 @@ load_dotenv()
 
 app = Flask(__name__)
 
+@app.after_request
+def add_cors_headers(response):
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+    return response
+
+@app.route('/', defaults={'path': ''}, methods=['OPTIONS'])
+@app.route('/<path:path>', methods=['OPTIONS'])
+def handle_options(path):
+    return '', 204
+
 COSMOS_ENDPOINT = os.getenv("AWS_ENDPOINT_URL")      # reaproveitando secret existente
 COSMOS_KEY      = os.getenv("AWS_SECRET_ACCESS_KEY")  # reaproveitando secret existente
 TABLE_NAME      = os.getenv("AWS_DYNAMODB_TABLE", "volunteers")
