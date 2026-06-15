@@ -1,0 +1,8 @@
+# Dependências transitivas da imagem base python:3.11-slim sem fix disponível ou requerendo upgrade manual
+CVE-2026-23949
+CVE-2026-24049
+# urllib3 puxado pelo boto3 - versão 2.x tem breaking changes com boto3 1.26.x
+CVE-2025-66418
+CVE-2025-66471
+CVE-2026-21441
+CVE-2026-44431
