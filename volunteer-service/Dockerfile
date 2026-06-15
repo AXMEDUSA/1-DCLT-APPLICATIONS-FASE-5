@@ -2,11 +2,8 @@ FROM python:3.11-slim AS builder
 
 WORKDIR /app
 
-RUN pip install --no-cache-dir --prefix=/install \
-    Flask==2.2.2 \
-    gunicorn==20.1.0 \
-    python-dotenv==0.21.0 \
-    boto3==1.26.50
+COPY requirements.txt .
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 
 FROM python:3.11-slim
