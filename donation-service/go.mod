@@ -14,6 +14,10 @@ require (
 // pelo dd-trace-go. Pode ser revisada quando dd-trace-go atualizar.
 require google.golang.org/grpc v1.79.3
 
+// Força versão mínima do OpenTelemetry para mitigar CVE-2026-29181
+// (DoS via crafted multi-value baggage headers). Também transitiva via dd-trace-go.
+require go.opentelemetry.io/otel v1.41.0
+
 require (
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
 	github.com/jackc/pgconn v1.14.3 // indirect
