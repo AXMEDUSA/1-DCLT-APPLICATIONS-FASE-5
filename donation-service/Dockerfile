@@ -5,9 +5,9 @@ WORKDIR /app
 RUN apk add --no-cache git
 
 COPY go.mod go.sum* ./
-RUN go mod download
-
 COPY . .
+# Resolve/atualiza dependências (inclui dd-trace-go) e gera go.sum consistente.
+RUN go mod tidy
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
     go build -ldflags="-s -w" -o donation-service .
 

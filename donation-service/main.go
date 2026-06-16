@@ -11,8 +11,13 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
-	_ "github.com/jackc/pgx/v4/stdlib"
+	"github.com/jackc/pgx/v4/stdlib"
 	"github.com/joho/godotenv"
+
+	awstrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/aws/aws-sdk-go/aws"
+	sqltrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/database/sql"
+	httptrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/net/http"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
 type Donation struct {
@@ -33,6 +38,16 @@ type App struct {
 func main() {
 	_ = godotenv.Load()
 
+	// === Datadog APM ===
+	// Configuração via env: DD_AGENT_HOST, DD_TRACE_AGENT_PORT, DD_SERVICE,
+	// DD_ENV, DD_VERSION, DD_TRACE_ENABLED, DD_LOGS_INJECTION etc.
+	tracer.Start(
+		tracer.WithService(getEnv("DD_SERVICE", "donation-service")),
+		tracer.WithEnv(os.Getenv("DD_ENV")),
+		tracer.WithServiceVersion(os.Getenv("DD_VERSION")),
+	)
+	defer tracer.Stop()
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8082"
@@ -43,7 +58,10 @@ func main() {
 		log.Fatal("DATABASE_URL é obrigatória")
 	}
 
-	db, err := sql.Open("pgx", dbURL)
+	// Registra o driver pgx instrumentado pelo Datadog (database/sql).
+	sqltrace.Register("pgx", &stdlib.Driver{},
+		sqltrace.WithServiceName("donation-service-db"))
+	db, err := sqltrace.Open("pgx", dbURL)
 	if err != nil || db.Ping() != nil {
 		log.Fatalf("Erro ao conectar ao banco de dados: %v", err)
 	}
@@ -54,8 +72,9 @@ func main() {
 	region := os.Getenv("AWS_REGION")
 	if queueURL != "" && region != "" {
 		sess, _ := session.NewSession(&aws.Config{Region: aws.String(region)})
+		sess = awstrace.WrapSession(sess)
 		sqsSvc = sqs.New(sess)
-		log.Println("Integração com AWS SQS ativada.")
+		log.Println("Integração com AWS SQS ativada (instrumentada com Datadog).")
 	}
 
 	app := &App{DB: db, SqsSvc: sqsSvc, SqsQueueURL: queueURL}
@@ -64,8 +83,19 @@ func main() {
 	mux.HandleFunc("/health", app.HealthHandler)
 	mux.HandleFunc("/donations", app.DonationHandler)
 
+	// Wrapper do mux com Datadog + CORS por cima.
+	tracedMux := httptrace.WrapHandler(mux, "donation-service", "")
+	handler := corsMiddleware(tracedMux)
+
 	log.Printf("donation-service rodando na porta %s", port)
-	log.Fatal(http.ListenAndServe(":"+port, corsMiddleware(mux)))
+	log.Fatal(http.ListenAndServe(":"+port, handler))
+}
+
+func getEnv(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
 }
 
 func corsMiddleware(next http.Handler) http.Handler {
@@ -98,7 +128,7 @@ func (a *App) DonationHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		d.Status = "APPROVED" // Simulação de gateway de pagamento
-		err := a.DB.QueryRow(
+		err := a.DB.QueryRowContext(r.Context(),
 			"INSERT INTO donations (ngo_id, amount, donor_name, status) VALUES ($1, $2, $3, $4) RETURNING id, created_at",
 			d.NgoID, d.Amount, d.DonorName, d.Status,
 		).Scan(&d.ID, &d.CreatedAt)
@@ -119,7 +149,8 @@ func (a *App) DonationHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == http.MethodGet {
-		rows, err := a.DB.Query("SELECT id, ngo_id, amount, donor_name, status, created_at FROM donations ORDER BY id DESC")
+		rows, err := a.DB.QueryContext(r.Context(),
+			"SELECT id, ngo_id, amount, donor_name, status, created_at FROM donations ORDER BY id DESC")
 		if err != nil {
 			http.Error(w, `{"error":"Erro interno"}`, http.StatusInternalServerError)
 			return

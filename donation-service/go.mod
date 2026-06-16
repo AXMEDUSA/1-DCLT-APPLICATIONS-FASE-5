@@ -6,6 +6,7 @@ require (
 	github.com/aws/aws-sdk-go v1.51.10
 	github.com/jackc/pgx/v4 v4.18.3
 	github.com/joho/godotenv v1.5.1
+	gopkg.in/DataDog/dd-trace-go.v1 v1.71.0
 )
 
 require (
