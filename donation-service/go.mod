@@ -9,6 +9,11 @@ require (
 	gopkg.in/DataDog/dd-trace-go.v1 v1.71.0
 )
 
+// Força versão mínima da grpc-go para mitigar CVE-2026-33186
+// (Authorization bypass via HTTP/2 path validation). Trazida transitivamente
+// pelo dd-trace-go. Pode ser revisada quando dd-trace-go atualizar.
+require google.golang.org/grpc v1.79.3
+
 require (
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
 	github.com/jackc/pgconn v1.14.3 // indirect
